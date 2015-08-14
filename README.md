@@ -1,0 +1,2 @@
+# slurmer
+Interact with slurm
