@@ -1,2 +1,2 @@
 # slurmer
-Interact with slurm
+Interact with slurm on darwin
