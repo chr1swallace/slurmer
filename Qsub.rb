@@ -3,6 +3,7 @@ HEADER_CONST='#!/bin/bash'
 TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load default-impi    # REQUIRED - loads the basic environment
+module load R/3.2.3 # latest R
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
 echo -e "JobID: $JOBID
@@ -35,9 +36,13 @@ class Qsub
     @counter_outer=0
     @counter_inner=0
     @jobfile=File.open(jobfile_name(),"w")
+    @mem= (63900/ (@tasks.to_i) ).floor
   end
   def jobfile_name()
     @file_name + @counter_outer.to_s
+  end
+  def add_header(text)
+    @jobfile.puts(text)
   end
   def add(command)
     if @counter_inner == @tasks.to_i
@@ -64,6 +69,7 @@ class Qsub
     @jobfile.puts '#SBATCH --ntasks ' + @tasks
     @jobfile.puts '#SBATCH --time ' + @time
     @jobfile.puts '#SBATCH --mail-type ' + @mail
+    @jobfile.puts '#SBATCH --mem ' + @mem.to_s
     @jobfile.puts '#SBATCH -p ' + @p
     @jobfile.puts(TAIL_CONST)
   end
