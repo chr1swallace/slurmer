@@ -20,10 +20,14 @@ fi
 
 '
 
+## DEFAULTS
+ACCOUNT=ENV["SLURMACCOUNT"]
+TIME='01:00:00' # hh:mm:ss
+
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ENV["SLURMACCOUNT"],:nodes=>'1',:tasks=>'16',:time=>'01:00:00',:mail=>'ALL',:p=>ENV["SLURMHOST"]}
-    puts opts
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"]}
+    p opts
     @file_name=file
     @file = File.open(file,"w")
     @job=opts[:job] || defaults[:job]
