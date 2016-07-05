@@ -4,6 +4,7 @@ TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module co
 module purge                # Removes all modules still loaded
 module load default-impi    # REQUIRED - loads the basic environment
 module load R/3.2.3 # latest R
+module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
 echo -e "JobID: $JOBID
@@ -81,6 +82,7 @@ class Qsub
     @jobfile.puts("wait\n")
     @jobfile.close()
     @file.close()
-    puts "now run bash " + @file_name
+    puts "now run"
+    puts "bash -l " + @file_name
   end
 end

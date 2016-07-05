@@ -43,7 +43,9 @@ q=Qsub.new("slurm-R-#{t}.sh",
            :time=>options["t"],
            :account=>options["a"])
 
+
 q.add( "R CMD BATCH " + ARGV.join(" ") )
+#q.add( ARGV.join(" ") )
 
 q.close()
 
