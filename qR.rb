@@ -24,8 +24,22 @@ require ENV["HOME"] + '/slurmer/Qsub.rb'
 # p account
 
 require 'optparse'
+options = ARGV.getopts("t:","a:","h")
+if(options["h"]) then
+  puts "Usage:
+qlines.rb [-a account] [-t time] [-h] Rscript [Rscript args]
 
-options = ARGV.getopts("t:","a:")
+-a account
+   If not supplied, account will be found from the environment variable SLURMACCOUNT
+-t time
+   format hh:mm:ss
+   default is 01:00:00 (1 hour)
+-h
+   print this message and exit
+
+Rscript will be run on the queue (`R CMD BATCH Rscript [Rscript args]`), with 16 cores booked, so using parallelisation with 16 cores within the script is recommended."
+  exit
+end
 if(!options["a"]) then
   options["a"] = ACCOUNT
 end
