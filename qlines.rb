@@ -38,7 +38,7 @@ end
 if(!options["x"]) then
   options["x"] = "--exclusive"
 else
-  options["x"] = ""
+  options["x"] = " "
 end
 
 # require 'Trollop'
