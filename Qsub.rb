@@ -27,12 +27,13 @@ TIME='01:00:00' # hh:mm:ss
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"]}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>"--exclusive "}
     p opts
     @file_name=file
     @file = File.open(file,"w")
     @job=opts[:job] || defaults[:job]
     @account=opts[:account] || defaults[:account]
+    @excl=opts[:excl] || defauls[:excl]
     @nodes=(opts[:nodes] || defaults[:nodes]).to_s
     @tasks=(opts[:tasks] || defaults[:tasks]).to_s
     @time=opts[:time] || defaults[:time]
@@ -63,7 +64,7 @@ class Qsub
       @file.puts("sbatch " + jobfile_name())
       init_job()
     end
-    @jobfile.puts 'srun -n1 --exclusive ' + command + " &\n"
+    @jobfile.puts 'srun -n1 ' + @excl + ' ' + command + " &\n"
     @counter_inner += 1
   end
   def init_job()
