@@ -36,9 +36,9 @@ if(!options["t"]) then
   options["t"] = TIME
 end
 if(!options["x"]) then
-  options["x"] = "--exclusive"
-else
   options["x"] = " "
+else
+  options["x"] = "--exclusive"
 end
 
 # require 'Trollop'
