@@ -43,6 +43,13 @@ class Qsub
     @counter_inner=0
     @jobfile=File.open(jobfile_name(),"w")
     @mem= (63900/ (@tasks.to_i) ).floor
+    ## check
+    if(@account.nil?)
+      raise "environment variable SLURMACCOUNT not set"      
+    end
+    if(@p.nil?)
+      raise "environment variable SLURMHOST not set"      
+    end
   end
   def jobfile_name()
     @file_name + @counter_outer.to_s
