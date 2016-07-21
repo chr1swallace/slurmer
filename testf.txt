@@ -1,2 +1,0 @@
-echo "run1" >> test.out
-echo "run2" >> test.out

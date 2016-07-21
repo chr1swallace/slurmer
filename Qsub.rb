@@ -33,7 +33,7 @@ class Qsub
     @file = File.open(file,"w")
     @job=opts[:job] || defaults[:job]
     @account=opts[:account] || defaults[:account]
-    @excl=opts[:excl] || defauls[:excl]
+    @excl=opts[:excl] || defaults[:excl]
     @nodes=(opts[:nodes] || defaults[:nodes]).to_s
     @tasks=(opts[:tasks] || defaults[:tasks]).to_s
     @time=opts[:time] || defaults[:time]
