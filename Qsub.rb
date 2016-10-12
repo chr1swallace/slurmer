@@ -27,7 +27,7 @@ TIME='01:00:00' # hh:mm:ss
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>"--exclusive "}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>"--exclusive ",:autorun=>false}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -43,6 +43,7 @@ class Qsub
     @counter_inner=0
     @jobfile=File.open(jobfile_name(),"w")
     @mem= (63900/ (@tasks.to_i) ).floor
+    @autorun=opts[:autorun] || defaults[:autorun]
     ## check
     if(@account.nil?)
       raise "environment variable SLURMACCOUNT not set"      
@@ -92,5 +93,8 @@ class Qsub
     @file.close()
     puts "now run"
     puts "bash -l " + @file_name
+    if @autorun
+      system("bash -l " + @file_name)
+    end
   end
 end
