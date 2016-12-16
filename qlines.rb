@@ -90,7 +90,7 @@ f = ARGV[0]
 
 q=Qsub.new("slurm-lines-#{now}.sh",
            :job=>options["j"],
-           :tasks=>'16',
+           :tasks=>'1',
            :cpus=>options["c"].to_s,
            :time=>options["t"],
            :account=>options["a"],
