@@ -58,13 +58,13 @@ p options
 t = Time.now
 t = t.strftime("%Y%m%d")
 q=Qsub.new("slurm-R-#{t}.sh",
-           :tasks=>'1',
+           :tasks=>'16',
            :time=>options["t"],
            :account=>options["a"],
            :autorun=>options["r"])
 
 
-q.add( "Rscript -e \"library(knitr);knit(" + ARGV[0] + ")\"") #.join(" ") )
+q.add( "Rscript -e \"library(knitr);knit('" + ARGV[0] + "')\"") #.join(" ") )
 #q.add( ARGV.join(" ") )
 
 q.close()

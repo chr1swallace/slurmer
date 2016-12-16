@@ -27,7 +27,7 @@ require 'optparse'
 options = ARGV.getopts("t:","a:","h","r")
 if(options["h"]) then
   puts "Usage:
-qlines.rb [-a account] [-t time] [-h] [-r] Rscript [Rscript args]
+qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
 
 -a account
    If not supplied, account will be found from the environment variable SLURMACCOUNT

@@ -40,6 +40,7 @@ t = Time.now
 t = t.strftime("%Y%m%d")
 q=Qsub.new("slurm-#{t}.sh",
            :tasks=>'1',
+           :excl=>" --exclusive",
            :time=>options["t"],
            :account=>options["a"])
 

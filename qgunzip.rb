@@ -2,7 +2,7 @@
 
 ## files to zip in ARGV
 
-require ENV["HOME"] + '/bin/Qsub.rb'
+require ENV["HOME"] + '/slurmer/Qsub.rb'
 
 ## put "gunzip argv" on the Q for each thing in @ARGV
 t = Time.now

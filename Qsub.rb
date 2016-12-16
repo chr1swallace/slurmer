@@ -3,14 +3,14 @@ HEADER_CONST='#!/bin/bash'
 TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load default-impi    # REQUIRED - loads the basic environment
-module load R/3.2.3 # latest R
+module load R/3.3.0 # latest R
 module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
-echo -e "JobID: $JOBID
-echo "Time: `date`
-echo "Running on master node: `hostname`
-echo "Current directory: `pwd`
+echo -e JobID: $JOBID
+echo Time: `date`
+echo Running on master node: `hostname`
+echo Current directory: `pwd`
 if [ "$SLURM_JOB_NODELIST" ]; then
         #! Create a machine file:
         export NODEFILE=`generate_pbs_nodefile`
@@ -27,7 +27,7 @@ TIME='01:00:00' # hh:mm:ss
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>"--exclusive ",:autorun=>false}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -36,6 +36,8 @@ class Qsub
     @excl=opts[:excl] || defaults[:excl]
     @nodes=(opts[:nodes] || defaults[:nodes]).to_s
     @tasks=(opts[:tasks] || defaults[:tasks]).to_s
+#    @cpus=(@tasks.to_i == 1 && opts[:p] == 'sandybridge' ? '16' : '1')
+    @cpus= (opts[:cpus] || (16 / (@tasks.to_i)) ).to_s
     @time=opts[:time] || defaults[:time]
     @mail=opts[:mail] || defaults[:mail]
     @p=opts[:p] || defaults[:p]
@@ -72,6 +74,7 @@ class Qsub
       @file.puts("sbatch " + jobfile_name())
       init_job()
     end
+    @jobfile.puts 'echo "running" ' + command + "\n"
     @jobfile.puts 'srun -n1 ' + @excl + ' ' + command + " &\n"
     @counter_inner += 1
   end
@@ -81,9 +84,10 @@ class Qsub
     @jobfile.puts '#SBATCH -A ' + @account
     @jobfile.puts '#SBATCH --nodes ' + @nodes
     @jobfile.puts '#SBATCH --ntasks ' + @tasks
+    @jobfile.puts '#SBATCH --cpus-per-task ' + @cpus
     @jobfile.puts '#SBATCH --time ' + @time
     @jobfile.puts '#SBATCH --mail-type ' + @mail
-    @jobfile.puts '#SBATCH --mem ' + @mem.to_s
+#    @jobfile.puts '#SBATCH --mem ' + @mem.to_s
     @jobfile.puts '#SBATCH -p ' + @p
     @jobfile.puts(TAIL_CONST)
   end
