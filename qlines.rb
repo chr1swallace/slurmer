@@ -9,15 +9,18 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","a:","x","h","r")
+options = ARGV.getopts("t:","a:","j:","x","h","r")
 if(options["h"]) then
   puts "Usage:
 
-qlines.rb [-a account] [-t time] [-x] [-h] [-r] file
+qlines.rb [-a account] [-j jobname] [-t time] [-x] [-h] [-r] file
 
 -a account
    If not supplied, account will be found from the environment
    variable SLURMACCOUNT
+
+-a jobname
+   If not supplied, jobname will be set to qlines
 
 -t time
    format hh:mm:ss
@@ -27,6 +30,10 @@ qlines.rb [-a account] [-t time] [-x] [-h] [-r] file
    by default, this script assumes you want one core per line.  If you
    want to parallelise within your job and want one node per line, use
    the -x flag to use the --exclusive option for srun
+
+-c (number of) cpus per task
+   by default, this script assumes you want one core per line.  If you 
+   want more, eg to expand memory, set -c to a number > 1 and <=16.   
 
 -h
    print this message and exit
@@ -41,11 +48,24 @@ file
   exit
 end
 
+# args= { :job => "qlines",
+#         :tasks => '16',
+#         :excl => " " }
+# options[:j] = options[:j] if options[:j]
+# args[:time] = options[:t] if options[:t]
+# args[:account] = options[:a] if options[:a]
+# args[:excl] = "--exclusive" if options[:x]
+if(!options["j"]) then
+  options["j"] = "qlines"
+end
 if(!options["a"]) then
   options["a"] = ACCOUNT
 end
 if(!options["t"]) then
   options["t"] = TIME
+end
+if(!options["c"]) then
+  options["c"] = "1"
 end
 if(!options["x"]) then
   options["x"] = " "
@@ -67,8 +87,11 @@ p options
 ## how many tasks
 f = ARGV[0]
 
+
 q=Qsub.new("slurm-lines-#{now}.sh",
+           :job=>options["j"],
            :tasks=>'16',
+           :cpus=>options["c"].to_s,
            :time=>options["t"],
            :account=>options["a"],
            :excl=>options["x"],
