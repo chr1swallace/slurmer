@@ -63,8 +63,8 @@ Sequential
 [ -e testf.txt ] && rm testf.txt
 for i in `seq 1 32`; do
 echo "echo run$i \`date\` >> test.out && sleep 2" >> testf.txt
-don
-6=`date +%Y%m%d`
+done
+d=`date +%Y%m%d`
 ./qlines.rb -x testf.txt
 bash -l slurm-lines-$d.sh
 # wait until complete

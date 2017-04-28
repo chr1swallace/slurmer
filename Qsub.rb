@@ -1,4 +1,6 @@
 
+USER=ENV['USER']
+QDIR="/scratch/#{USER}/Q"
 HEADER_CONST='#!/bin/bash'
 TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
@@ -27,7 +29,7 @@ TIME='01:00:00' # hh:mm:ss
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'ALL',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -95,10 +97,17 @@ class Qsub
     @jobfile.puts("wait\n")
     @jobfile.close()
     @file.close()
-    puts "now run"
-    puts "bash -l " + @file_name
     if @autorun
       system("bash -l " + @file_name)
+    else
+      puts "now run"
+      puts "bash -l " + @file_name
     end
   end
+end
+
+def qone(command,args,filestub)
+  q=Qsub.new("#{QDIR}/#{filestub}.sh",args)
+  q.add("#{command} > #{QDIR}/#{filestub}.out 2>&1")
+  q.close()
 end
