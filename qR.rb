@@ -24,7 +24,7 @@ require ENV["HOME"] + '/slurmer/Qsub.rb'
 # p account
 
 require 'optparse'
-options = ARGV.getopts("t:","a:","h","r")
+options = ARGV.getopts("t:","a:","j:","h","r","c:","y:","n:")
 if(options["h"]) then
   puts "Usage:
 qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
@@ -36,8 +36,16 @@ qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
    default is 01:00:00 (1 hour)
 -h
    print this message and exit
+-j 
+   jobname
 -r
    autoRun (or autoqueue) - use with caution
+-c
+   ncpu-per-task (default 16)
+-y 
+   array - sets SBATCH --array ARG
+-n 
+   array argument name - otherwise set to 'taskid'
 
 Rscript will be run on the queue (`R CMD BATCH Rscript [Rscript args]`), with 16 cores booked, so using parallelisation with 16 cores within the script is recommended."
   exit
@@ -51,6 +59,16 @@ end
 if(!options["r"]) then
   options["r"] = false
 end
+if(!options["c"]) then
+  options["c"] = '16'
+end
+if(!options["j"]) then
+  options["j"] = 'qR'
+end
+if(!options["n"]) then
+  options["n"] = "taskid"
+end
+
 
 p options
 
@@ -61,10 +79,21 @@ q=Qsub.new("slurm-R-#{t}.sh",
            :tasks=>'1',
            :time=>options["t"],
            :account=>options["a"],
+           :array=>options['y'] || '',
+	   :cpus=>options["c"],
+           :job=>options['j'],
            :autorun=>options["r"])
 
+## create arguments
+args = ARGV.join(" ")
+## add array?
+if(options['y'])
+  /--args/ =~ args || args = args + " --args "
+  args = args + " #{options['n']}=$SLURM_ARRAY_TASK_ID "
+end
 
-q.add( "R CMD BATCH " + ARGV.join(" ") )
+q.add( "Rscript " + args )
+
 #q.add( ARGV.join(" ") )
 
 q.close()

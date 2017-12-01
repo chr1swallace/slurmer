@@ -5,8 +5,10 @@ HEADER_CONST='#!/bin/bash'
 TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load default-impi    # REQUIRED - loads the basic environment
-module load R/3.3.0 # latest R
-module load rstudio/0.99/rstudio-0.99 # to match interactive session
+module load gcc/5.3.0
+module load zlib/1.2.8
+module load R/3.3.2 # latest R
+# module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
 echo -e JobID: $JOBID
@@ -26,10 +28,15 @@ fi
 ## DEFAULTS
 ACCOUNT=ENV["SLURMACCOUNT"]
 TIME='01:00:00' # hh:mm:ss
+HOSTS= { 'MRC-BSU-SL2' => 'mrc-bsu-sand',
+         'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
+         'CWALLACE-SL2' => 'sandybridge',
+         'CWALLACE-SL3' => 'sandybridge',
+         'MRC-BSU-SL3' => 'sandybridge'}
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false,:array=>''}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -42,16 +49,28 @@ class Qsub
     @cpus= (opts[:cpus] || (16 / (@tasks.to_i)) ).to_s
     @time=opts[:time] || defaults[:time]
     @mail=opts[:mail] || defaults[:mail]
-    @p=opts[:p] || defaults[:p]
     @counter_outer=0
     @counter_inner=0
     @jobfile=File.open(jobfile_name(),"w")
     @mem= (63900/ (@tasks.to_i) ).floor
     @autorun=opts[:autorun] || defaults[:autorun]
+    @array=opts[:array] || defaults[:array]
+    ## tesla is special
+    if @account.eql?('tesla') then
+      @account = "MRC-BSU-SL2-GPU"
+    end
+    if @account.eql?('MRC-BSU-SL2-GPU')  && @cpus.eql?('16') then
+      @cpus='12'
+    end
+    if @account.eql?('MRC-BSU-SL2-GPU')  && @tasks.eql?('16') then
+      @tasks='12'
+    end
     ## check
     if(@account.nil?)
       raise "environment variable SLURMACCOUNT not set"      
     end
+    # @p=opts[:p] || defaults[:p]
+    @p=HOSTS[ @account.upcase ]
     if(@p.nil?)
       raise "environment variable SLURMHOST not set"      
     end
@@ -73,7 +92,7 @@ class Qsub
       if @counter_outer > 0
         @jobfile=File.open(jobfile_name(),"w")
       end
-      @file.puts("sbatch " + jobfile_name())
+      @file.puts("sbatch -o /scratch/cew54/Q/slurm-%j.out " + jobfile_name())
       init_job()
     end
     @jobfile.puts 'echo "running" ' + command + "\n"
@@ -91,6 +110,13 @@ class Qsub
     @jobfile.puts '#SBATCH --mail-type ' + @mail
 #    @jobfile.puts '#SBATCH --mem ' + @mem.to_s
     @jobfile.puts '#SBATCH -p ' + @p
+
+    if @array!=''
+      @jobfile.puts "#SBATCH --array=#{@array}"
+      @jobfile.puts "#SBATCH --output=#{@job}-%A_%a.out"
+    else
+      @jobfile.puts "#SBATCH --output=#{@job}-%A.out"
+    end
     @jobfile.puts(TAIL_CONST)
   end
   def close
