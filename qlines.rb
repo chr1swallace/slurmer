@@ -9,7 +9,7 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","a:","j:","x","h","r")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r")
 if(options["h"]) then
   puts "Usage:
 

@@ -24,15 +24,41 @@ if [ "$SLURM_JOB_NODELIST" ]; then
 fi
 
 '
+TAIL_CDS3='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
+module purge                # Removes all modules still loaded
+module load rhel7/default-peta4            # REQUIRED - loads the basic environment
+module load gcc/5.3.0
+module load zlib/1.2.8
+module load R/3.3.2 # latest R
+# module load rstudio/0.99/rstudio-0.99 # to match interactive session
+export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
+JOBID=$SLURM_JOB_ID
+echo -e JobID: $JOBID
+echo Time: `date`
+echo Running on master node: `hostname`
+echo Current directory: `pwd`
+if [ "$SLURM_JOB_NODELIST" ]; then
+        #! Create a machine file:
+        export NODEFILE=`generate_pbs_nodefile`
+        cat $NODEFILE | uniq > machine.file.$JOBID
+        echo -e "\nNodes allocated:\n================"
+        echo `cat machine.file.$JOBID | sed -e \'s/\..*$//g\'`
+fi
+
+'
 
 ## DEFAULTS
 ACCOUNT=ENV["SLURMACCOUNT"]
 TIME='01:00:00' # hh:mm:ss
 HOSTS= { 'MRC-BSU-SL2' => 'mrc-bsu-sand',
          'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
+         'CWALLACE-SL2-CPU' => 'skylake',
+         # 'CWALLACE-SL3' => 'skylake',
+         # 'MRC-BSU-SL3' => 'skylake',
          'CWALLACE-SL2' => 'sandybridge',
-         'CWALLACE-SL3' => 'sandybridge',
-         'MRC-BSU-SL3' => 'sandybridge'}
+         # 'CWALLACE-SL3' => 'sandybridge',
+         # 'MRC-BSU-SL3' => 'sandybridge',
+       }
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
@@ -96,7 +122,11 @@ class Qsub
       init_job()
     end
     @jobfile.puts 'echo "running" ' + command + "\n"
-    @jobfile.puts 'srun -n1 ' + @excl + ' ' + command + " &\n"
+    if @account.eql?('CWALLACE-SL2-CPU') then
+      @jobfile.puts 'mpirun -n1 ' + @excl + ' ' + command + " &\n"
+    else
+      @jobfile.puts 'srun -n1 ' + @excl + ' ' + command + " &\n"
+    end
     @counter_inner += 1
   end
   def init_job()
@@ -117,7 +147,11 @@ class Qsub
     else
       @jobfile.puts "#SBATCH --output=#{@job}-%A.out"
     end
-    @jobfile.puts(TAIL_CONST)
+    if @account.eql?('CWALLACE-SL2-CPU') then
+      @jobfile.puts(TAIL_CDS3)
+    else
+      @jobfile.puts(TAIL_CONST)
+    end
   end
   def close
     @jobfile.puts("wait\n")

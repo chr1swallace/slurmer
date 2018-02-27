@@ -9,7 +9,7 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","c:","a:","j:","x","h","r")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r","f:")
 if(options["h"]) then
   puts "Usage:
 
@@ -77,7 +77,7 @@ end
 if(!options["r"]) then
   options["r"] = false
 end
-# require 'Trollop'
+## require 'Trollop'
 # opts = Trollop::options do
 #   opt :quiet, "Use minimal output", :short => 'q'
 #   opt :interactive, "Be interactive"
