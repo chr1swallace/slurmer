@@ -1,13 +1,15 @@
 
 USER=ENV['USER']
-QDIR="/scratch/#{USER}/Q"
+# QDIR="/scratch/#{USER}/Q"
+# load("/home/cew54/DIRS.txt")
 HEADER_CONST='#!/bin/bash'
 TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load default-impi    # REQUIRED - loads the basic environment
-module load gcc/5.3.0
-module load zlib/1.2.8
-module load R/3.3.2 # latest R
+. /home/cew54/.modules
+  # module load gcc/5.3.0
+# module load zlib/1.2.8
+# module load R/3.3.2 # latest R
 # module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
@@ -27,9 +29,8 @@ fi
 TAIL_CDS3='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load rhel7/default-peta4            # REQUIRED - loads the basic environment
-module load gcc/5.3.0
-module load zlib/1.2.8
-module load R/3.3.2 # latest R
+. /home/cew54/.modules-cds3 
+# module load r-3.4.1-gcc-5.4.0-uj5r3tk
 # module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
 JOBID=$SLURM_JOB_ID
@@ -53,6 +54,9 @@ TIME='01:00:00' # hh:mm:ss
 HOSTS= { 'MRC-BSU-SL2' => 'mrc-bsu-sand',
          'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
          'CWALLACE-SL2-CPU' => 'skylake',
+         'CWALLACE-SL3-CPU' => 'skylake',
+         'TODD-SL3-CPU' => 'skylake',
+         'MRC-BSU-SL3-CPU' => 'skylake',
          # 'CWALLACE-SL3' => 'skylake',
          # 'MRC-BSU-SL3' => 'skylake',
          'CWALLACE-SL2' => 'sandybridge',
@@ -62,7 +66,10 @@ HOSTS= { 'MRC-BSU-SL2' => 'mrc-bsu-sand',
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
-    defaults={:job=>'rubyjob',:account=>ACCOUNT,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',:p=>ENV["SLURMHOST"],:excl=>" ",:autorun=>false,:array=>''}
+    defaults={:job=>'rubyjob',:account=>ACCOUNT.upcase,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',
+              :p=>HOSTS[ACCOUNT.upcase],
+              #:p=>ENV["SLURMHOST"],
+              :excl=>" ",:autorun=>false,:array=>''}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -108,6 +115,12 @@ class Qsub
     @jobfile.puts(text)
   end
   def add(command)
+    qroot = '~/scratch/Q'
+    comm = 'srun'
+    if @p.eql?('skylake') then
+      qroot = '~/rds/hpc-work/Q'
+      comm = 'mpirun'
+    end
     if @counter_inner == @tasks.to_i
       @jobfile.puts("wait\n")
       @jobfile.close()
@@ -118,15 +131,12 @@ class Qsub
       if @counter_outer > 0
         @jobfile=File.open(jobfile_name(),"w")
       end
-      @file.puts("sbatch -o /scratch/cew54/Q/slurm-%j.out " + jobfile_name())
+      @file.puts("sbatch -o #{qroot}/slurm-%j.out " + jobfile_name())
       init_job()
     end
     @jobfile.puts 'echo "running" ' + command + "\n"
-    if @account.eql?('CWALLACE-SL2-CPU') then
-      @jobfile.puts 'mpirun -n1 ' + @excl + ' ' + command + " &\n"
-    else
-      @jobfile.puts 'srun -n1 ' + @excl + ' ' + command + " &\n"
-    end
+    @jobfile.puts comm  + #@excl +
+                  ' ' + command + " &\n"
     @counter_inner += 1
   end
   def init_job()
@@ -147,7 +157,7 @@ class Qsub
     else
       @jobfile.puts "#SBATCH --output=#{@job}-%A.out"
     end
-    if @account.eql?('CWALLACE-SL2-CPU') then
+    if @p.eql?('skylake') then
       @jobfile.puts(TAIL_CDS3)
     else
       @jobfile.puts(TAIL_CONST)
@@ -167,7 +177,14 @@ class Qsub
 end
 
 def qone(command,args,filestub)
-  q=Qsub.new("#{QDIR}/#{filestub}.sh",args)
-  q.add("#{command} > #{QDIR}/#{filestub}.out 2>&1")
+  if ACCOUNT.eql?('CWALLACE-SL2-CPU') then
+    qroot = "/rds/user/cew54/hpc-work/Q"
+    comm = 'mpirun'
+  else
+    qroot = "~/scratch/Q"
+    comm = 'srun -n1'
+  end
+  q=Qsub.new("#{qroot}/#{filestub}.sh",args)
+  q.add("#{command} > #{qroot}/#{filestub}.out 2>&1")
   q.close()
 end

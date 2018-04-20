@@ -42,8 +42,10 @@ qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
    autoRun (or autoqueue) - use with caution
 -c
    ncpu-per-task (default 16)
--y 
-   array - sets SBATCH --array ARG
+
+-y arraycom
+   array - sets SBATCH --array ARG.  Eg -y 0-9 to iterate over values 0-9
+
 -n 
    array argument name - otherwise set to 'taskid'
 

@@ -9,11 +9,11 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","c:","a:","j:","x","h","r","f:")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r","f:","y:")
 if(options["h"]) then
   puts "Usage:
 
-qlines.rb [-a account] [-j jobname] [-t time] [-x] [-h] [-r] file
+q.rb [args]
 
 -a account
    If not supplied, account will be found from the environment
@@ -32,14 +32,18 @@ qlines.rb [-a account] [-j jobname] [-t time] [-x] [-h] [-r] file
    the -x flag to use the --exclusive option for srun
 
 -c (number of) cpus per task
-   by default, this script assumes you want one core per line.  If you 
-   want more, eg to expand memory, set -c to a number > 1 and <=16.   
+   by default, this script assumes you want one cpu per command.  If you 
+   want more, to parallelise within the job or expand memory per task, 
+   set -c to a number > 1 and <=16.   
 
 -h
    print this message and exit
 
 -r
    autoRun (or autoqueue) - use with caution
+
+-y arraycom
+   array - sets SBATCH --array ARG.  Eg -y 0-9 to iterate over values 0-9
 
 -f file 
    file should contain commands to be run on the queue, one line per
@@ -96,6 +100,7 @@ q=Qsub.new("slurm-lines-#{now}.sh",
            :cpus=>options["c"].to_s,
            :time=>options["t"],
            :account=>options["a"],
+           :array=>options['y'] || '',
            :excl=>options["x"],
            :autorun=>options["r"])
 
