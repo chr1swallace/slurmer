@@ -9,7 +9,7 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","c:","a:","j:","x","h","r","f:","y:")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r","f:","y:","p:")
 if(options["h"]) then
   puts "Usage:
 
@@ -48,6 +48,9 @@ q.rb [args]
 -f file 
    file should contain commands to be run on the queue, one line per
    command, no extraneous text
+
+-p host defaults to sensible choice based on accounts.  But if you
+   want to specify, eg, skylake-himem, add -p skylake-himem
 
 command 
 "
@@ -102,7 +105,8 @@ q=Qsub.new("slurm-lines-#{now}.sh",
            :account=>options["a"],
            :array=>options['y'] || '',
            :excl=>options["x"],
-           :autorun=>options["r"])
+           :autorun=>options["r"],
+           :p=>options["p"])
 
 ## read lines from a file, then add them to the jobs list
 if(options["f"]) then

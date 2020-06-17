@@ -3,29 +3,32 @@ USER=ENV['USER']
 # QDIR="/scratch/#{USER}/Q"
 # load("/home/cew54/DIRS.txt")
 HEADER_CONST='#!/bin/bash'
-TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
-module purge                # Removes all modules still loaded
-module load default-impi    # REQUIRED - loads the basic environment
-. /home/cew54/.modules
-  # module load gcc/5.3.0
-# module load zlib/1.2.8
-# module load R/3.3.2 # latest R
-# module load rstudio/0.99/rstudio-0.99 # to match interactive session
-export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
-JOBID=$SLURM_JOB_ID
-echo -e JobID: $JOBID
-echo Time: `date`
-echo Running on master node: `hostname`
-echo Current directory: `pwd`
-if [ "$SLURM_JOB_NODELIST" ]; then
-        #! Create a machine file:
-        export NODEFILE=`generate_pbs_nodefile`
-        cat $NODEFILE | uniq > machine.file.$JOBID
-        echo -e "\nNodes allocated:\n================"
-        echo `cat machine.file.$JOBID | sed -e \'s/\..*$//g\'`
-fi
+# TAIL_CONST='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
+# module purge                # Removes all modules still loaded
+# module load default-impi    # REQUIRED - loads the basic environment
+# . /home/cew54/.modules
+#   # module load gcc/5.3.0
+# # module load zlib/1.2.8
+# # module load R/3.3.2 # latest R
+# # module load rstudio/0.99/rstudio-0.99 # to match interactive session
+# export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
+# JOBID=$SLURM_JOB_ID
+# echo -e JobID: $JOBID
+# echo Time: `date`
+# echo Running on master node: `hostname`
+# echo Current directory: `pwd`
+# if [ "$SLURM_JOB_NODELIST" ]; then
+#         #! Create a machine file:
+#         export NODEFILE=`generate_pbs_nodefile`
+#         echo -e "\nNodes allocated:\n================"
+#         cat $NODEFILE | uniq >> machine.files
+#         echo $JOBID >> jobids
+# fi
 
-'
+# '
+## removed these two lines, because machine.files are annoying and have not been useful yet.
+#echo `cat machine.file.$JOBID | sed -e \'s/\..*$//g\'`
+
 TAIL_CDS3='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load rhel7/default-peta4            # REQUIRED - loads the basic environment
@@ -33,6 +36,7 @@ module load rhel7/default-peta4            # REQUIRED - loads the basic environm
 # module load r-3.4.1-gcc-5.4.0-uj5r3tk
 # module load rstudio/0.99/rstudio-0.99 # to match interactive session
 export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
+export PATH="/home/cew54/localc/bin:$PATH"
 JOBID=$SLURM_JOB_ID
 echo -e JobID: $JOBID
 echo Time: `date`
@@ -41,9 +45,9 @@ echo Current directory: `pwd`
 if [ "$SLURM_JOB_NODELIST" ]; then
         #! Create a machine file:
         export NODEFILE=`generate_pbs_nodefile`
-        cat $NODEFILE | uniq > machine.file.$JOBID
         echo -e "\nNodes allocated:\n================"
-        echo `cat machine.file.$JOBID | sed -e \'s/\..*$//g\'`
+        echo `cat $NODEFILE | uniq`
+        echo $JOBID >> jobids
 fi
 
 '
@@ -51,18 +55,22 @@ fi
 ## DEFAULTS
 ACCOUNT=ENV["SLURMACCOUNT"]
 TIME='01:00:00' # hh:mm:ss
-HOSTS= { 'MRC-BSU-SL2' => 'mrc-bsu-sand',
-         'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
-         'CWALLACE-SL2-CPU' => 'skylake',
-         'CWALLACE-SL3-CPU' => 'skylake',
-         'TODD-SL3-CPU' => 'skylake',
-         'MRC-BSU-SL3-CPU' => 'skylake',
-         # 'CWALLACE-SL3' => 'skylake',
-         # 'MRC-BSU-SL3' => 'skylake',
-         'CWALLACE-SL2' => 'sandybridge',
-         # 'CWALLACE-SL3' => 'sandybridge',
-         # 'MRC-BSU-SL3' => 'sandybridge',
-       }
+HOSTS= {
+  # 'MRC-BSU-SL2' => 'mrc-bsu-sand',
+  # 'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
+  'CWALLACE-SL2-CPU' => 'skylake',
+  # 'CWALLACE-SL3-CPU' => 'skylake',
+  'TODD-SL3-CPU' => 'skylake',
+  'MRC-BSU-SL3-CPU' => 'skylake',
+  'MRC-BSU-SL3-GPU' => 'pascal',
+  'MRC-BSU-SL2-CPU' => 'skylake',
+  'MRC-BSU-SL2-GPU' => 'pascal',
+  # 'CWALLACE-SL3' => 'skylake',
+  # 'MRC-BSU-SL3' => 'skylake',
+  # 'CWALLACE-SL2' => 'sandybridge',
+  # 'CWALLACE-SL3' => 'sandybridge',
+  # 'MRC-BSU-SL3' => 'sandybridge',
+}
 
 class Qsub
   def initialize(file="runme.sh", opts = {})
@@ -102,8 +110,8 @@ class Qsub
     if(@account.nil?)
       raise "environment variable SLURMACCOUNT not set"      
     end
-    # @p=opts[:p] || defaults[:p]
-    @p=HOSTS[ @account.upcase ]
+    @p=opts[:p] || HOSTS[ @account.upcase ]
+    # @p=HOSTS[ @account.upcase ]
     if(@p.nil?)
       raise "environment variable SLURMHOST not set"      
     end
@@ -131,7 +139,7 @@ class Qsub
       if @counter_outer > 0
         @jobfile=File.open(jobfile_name(),"w")
       end
-      @file.puts("sbatch -o #{qroot}/slurm-%j.out " + jobfile_name())
+      @file.puts("sbatch -o #{qroot}/%j.out " + jobfile_name())
       init_job()
     end
     @jobfile.puts 'echo "running" ' + command + "\n"
@@ -157,11 +165,11 @@ class Qsub
     else
       @jobfile.puts "#SBATCH --output=#{@job}-%A.out"
     end
-    if @p.eql?('skylake') then
+    # if @p.eql?('skylake') then
       @jobfile.puts(TAIL_CDS3)
-    else
-      @jobfile.puts(TAIL_CONST)
-    end
+    # else
+    #   @jobfile.puts(TAIL_CONST)
+    # end
   end
   def close
     @jobfile.puts("wait\n")

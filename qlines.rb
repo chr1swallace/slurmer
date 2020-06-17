@@ -9,7 +9,7 @@ now = Time.now
 now = now.strftime("%Y%m%d")
 
 require 'optparse'
-options = ARGV.getopts("t:","c:","a:","j:","x","h","r")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r","p:")
 if(options["h"]) then
   puts "Usage:
 
@@ -40,6 +40,9 @@ qlines.rb [-a account] [-j jobname] [-t time] [-x] [-h] [-r] file
 
 -r
    autoRun (or autoqueue) - use with caution
+
+-p host
+   default queue is skylake. use -p skylake-himem for high memory jobs
 
 file 
    should contain commands to be run on the queue, one line per
@@ -87,7 +90,6 @@ p options
 ## how many tasks
 f = ARGV[0]
 
-
 q=Qsub.new("slurm-lines-#{now}.sh",
            :job=>options["j"],
            :tasks=>'1',
@@ -95,7 +97,8 @@ q=Qsub.new("slurm-lines-#{now}.sh",
            :time=>options["t"],
            :account=>options["a"],
            :excl=>options["x"],
-           :autorun=>options["r"])
+           :autorun=>options["r"],
+           :p=>options["p"])
 
 ## read lines from a file, then add them to the jobs list
 puts "reading commands one line at a time from #{f}"

@@ -24,7 +24,7 @@ require ENV["HOME"] + '/slurmer/Qsub.rb'
 # p account
 
 require 'optparse'
-options = ARGV.getopts("t:","a:","j:","h","r","c:","y:","n:")
+options = ARGV.getopts("t:","a:","j:","h","r","c:","y:","n:","p:")
 if(options["h"]) then
   puts "Usage:
 qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
@@ -41,13 +41,16 @@ qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
 -r
    autoRun (or autoqueue) - use with caution
 -c
-   ncpu-per-task (default 16)
+   ncpu-per-task (default 1)
 
 -y arraycom
    array - sets SBATCH --array ARG.  Eg -y 0-9 to iterate over values 0-9
 
 -n 
    array argument name - otherwise set to 'taskid'
+
+-p host defaults to sensible choice based on accounts.  But if you
+   want to specify, eg, skylake-himem, add -p skylake-himem
 
 Rscript will be run on the queue (`R CMD BATCH Rscript [Rscript args]`), with 16 cores booked, so using parallelisation with 16 cores within the script is recommended."
   exit
@@ -62,7 +65,7 @@ if(!options["r"]) then
   options["r"] = false
 end
 if(!options["c"]) then
-  options["c"] = '16'
+  options["c"] = '1'
 end
 if(!options["j"]) then
   options["j"] = 'qR'
@@ -84,7 +87,8 @@ q=Qsub.new("slurm-R-#{t}.sh",
            :array=>options['y'] || '',
 	   :cpus=>options["c"],
            :job=>options['j'],
-           :autorun=>options["r"])
+           :autorun=>options["r"],
+           :p=>options["p"])
 
 ## create arguments
 args = ARGV.join(" ")
