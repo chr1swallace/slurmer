@@ -25,12 +25,26 @@ require ENV["HOME"] + '/slurmer/Qsub.rb'
 
 require 'optparse'
 
-options = ARGV.getopts("t:","a:")
+options = ARGV.getopts("t:","c:","a:","j:","x","h","r","p:")
+if(!options["j"]) then
+  options["j"] = "qCom"
+end
 if(!options["a"]) then
   options["a"] = ACCOUNT
 end
 if(!options["t"]) then
   options["t"] = TIME
+end
+if(!options["c"]) then
+  options["c"] = "1"
+end
+if(!options["x"]) then
+  options["x"] = " "
+else
+  options["x"] = "--exclusive"
+end
+if(!options["r"]) then
+  options["r"] = false
 end
 
 p options
@@ -39,10 +53,14 @@ p options
 t = Time.now
 t = t.strftime("%Y%m%d")
 q=Qsub.new("slurm-#{t}.sh",
+           :job=>options["j"],
            :tasks=>'1',
-           :excl=>" --exclusive",
+           :cpus=>options["c"].to_s,
            :time=>options["t"],
-           :account=>options["a"])
+           :account=>options["a"],
+           :excl=>options["x"],
+           :autorun=>options["r"],
+           :p=>options["p"])
 
 q.add( ARGV.join(" ") )
 

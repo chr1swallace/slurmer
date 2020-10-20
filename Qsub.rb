@@ -75,9 +75,9 @@ HOSTS= {
 class Qsub
   def initialize(file="runme.sh", opts = {})
     defaults={:job=>'rubyjob',:account=>ACCOUNT.upcase,:nodes=>'1',:tasks=>'16',:time=>TIME,:mail=>'FAIL,TIME_LIMIT',
-              :p=>HOSTS[ACCOUNT.upcase],
+              :p=>HOSTS[ACCOUNT.upcase],:dependency=>'',
               #:p=>ENV["SLURMHOST"],
-              :excl=>" ",:autorun=>false,:array=>''}
+              :excl=>" ",:autorun=>false, :interactiverun=>false,:array=>''}
     p opts
     @file_name=file
     @file = File.open(file,"w")
@@ -89,12 +89,14 @@ class Qsub
 #    @cpus=(@tasks.to_i == 1 && opts[:p] == 'sandybridge' ? '16' : '1')
     @cpus= (opts[:cpus] || (16 / (@tasks.to_i)) ).to_s
     @time=opts[:time] || defaults[:time]
+    @dependency=opts[:dependency] || defaults[:dependency]
     @mail=opts[:mail] || defaults[:mail]
     @counter_outer=0
     @counter_inner=0
     @jobfile=File.open(jobfile_name(),"w")
     @mem= (63900/ (@tasks.to_i) ).floor
     @autorun=opts[:autorun] || defaults[:autorun]
+    @interactiverun=opts[:interactiverun] || defaults[:interactiverun]
     @array=opts[:array] || defaults[:array]
     ## tesla is special
     if @account.eql?('tesla') then
@@ -124,6 +126,7 @@ class Qsub
   end
   def add(command)
     qroot = '~/scratch/Q'
+    # qroot = '~/q'
     comm = 'srun'
     if @p.eql?('skylake') then
       qroot = '~/rds/hpc-work/Q'
@@ -139,7 +142,7 @@ class Qsub
       if @counter_outer > 0
         @jobfile=File.open(jobfile_name(),"w")
       end
-      @file.puts("sbatch -o #{qroot}/%j.out " + jobfile_name())
+      @file.puts("sbatch #{@dependency} -o #{qroot}/%j.out " + jobfile_name())
       init_job()
     end
     @jobfile.puts 'echo "running" ' + command + "\n"
@@ -175,8 +178,10 @@ class Qsub
     @jobfile.puts("wait\n")
     @jobfile.close()
     @file.close()
-    if @autorun
-      system("bash -l " + @file_name)
+    if @interactiverun
+        system("bash " + jobfile_name())
+    elsif @autorun
+        system("bash -l " + @file_name)
     else
       puts "now run"
       puts "bash -l " + @file_name
@@ -190,9 +195,26 @@ def qone(command,args,filestub)
     comm = 'mpirun'
   else
     qroot = "~/scratch/Q"
+    # qroot = "~/q"
     comm = 'srun -n1'
   end
   q=Qsub.new("#{qroot}/#{filestub}.sh",args)
   q.add("#{command} > #{qroot}/#{filestub}.out 2>&1")
+  q.close()
+end
+
+def qarray(commands,args,filestub)
+  if ACCOUNT.eql?('CWALLACE-SL2-CPU') then
+    qroot = "/rds/user/cew54/hpc-work/Q"
+    comm = 'mpirun'
+  else
+    qroot = "~/scratch/Q"
+    # qroot = "~/q"
+    comm = 'srun -n1'
+  end
+  q=Qsub.new("#{qroot}/#{filestub}.sh",args)
+  commands.each do |command|
+      q.add("#{command} > #{qroot}/#{filestub}.out 2>&1")
+  end
   q.close()
 end
