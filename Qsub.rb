@@ -59,12 +59,12 @@ TIME='01:00:00' # hh:mm:ss
 HOSTS= {
     # 'MRC-BSU-SL2' => 'mrc-bsu-sand',
     # 'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
-    'CWALLACE-SL2-CPU' => 'skylake',
+    'CWALLACE-SL2-CPU' => 'skylake,skylake-himem',
     # 'CWALLACE-SL3-CPU' => 'skylake',
     'TODD-SL3-CPU' => 'skylake',
     'MRC-BSU-SL3-CPU' => 'skylake',
     'MRC-BSU-SL3-GPU' => 'pascal',
-    'MRC-BSU-SL2-CPU' => 'skylake',
+    'MRC-BSU-SL2-CPU' => 'skylake,skylake-himem',
     'MRC-BSU-SL2-GPU' => 'pascal',
     # 'CWALLACE-SL3' => 'skylake',
     # 'MRC-BSU-SL3' => 'skylake',
@@ -97,9 +97,7 @@ class Qsub
         @account=opts[:account] || defaults[:account]
         raise "environment variable SLURMACCOUNT not set" if @account.nil?
         ## tesla is special
-        if @account.eql?('tesla') then
-            @account = "MRC-BSU-SL2-GPU"
-        end
+        @account = "MRC-BSU-SL2-GPU" if @account.eql?('tesla')
         if @account.eql?('MRC-BSU-SL2-GPU')  && @cpus.eql?('16') then
             @cpus='12'
             @tasks='12'
@@ -127,14 +125,16 @@ class Qsub
         @array=opts[:array] || defaults[:array]
         @qroot = "/rds/user/cew54/hpc-work/Q"
         @comm = 'mpirun'
-
     end
+
     def jobfile_name()
         @file_name + @counter_outer.to_s
     end
+
     def add_header(text)
         @jobfile.puts(text)
     end
+
     def add(command)
         if @counter_inner == @tasks.to_i
             @jobfile.puts("wait\n")
@@ -143,9 +143,7 @@ class Qsub
             @counter_inner = 0
         end
         if @counter_inner == 0
-            if @counter_outer > 0
-                @jobfile=File.open(jobfile_name(),"w")
-            end
+            @jobfile=File.open(jobfile_name(),"w") if @counter_outer > 0
             @file.puts("sbatch #{@dependency} -o #{@qroot}/%j.out " + jobfile_name())
             init_job()
         end
@@ -153,6 +151,7 @@ class Qsub
         @jobfile.puts "#{@comm} #{command} &\n"
         @counter_inner += 1
     end
+
     def init_job()
         @jobfile.puts %{#{HEADER_CONST}
 #SBATCH -J #{@job}
@@ -178,6 +177,7 @@ class Qsub
         end
         @jobfile.puts TAIL_CDS3
     end
+
     def close
         @jobfile.puts "wait\n"
         @jobfile.close()

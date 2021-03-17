@@ -24,10 +24,10 @@ require ENV["HOME"] + '/slurmer/Qsub.rb'
 # p account
 
 require 'optparse'
-options = ARGV.getopts("t:","a:","j:","h","r","c:","y:","n:","p:")
+options = ARGV.getopts("t:","a:","j:","l:","h","r","c:","y:","n:","p:")
 if(options["h"]) then
   puts "Usage:
-qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
+qR.rb [-a account] [-t time] [-h] [-r] [-l logfile] Rscript.file [Rscript args]
 
 -a account
    If not supplied, account will be found from the environment variable SLURMACCOUNT
@@ -38,6 +38,8 @@ qR.rb [-a account] [-t time] [-h] [-r] Rscript.file [Rscript args]
    print this message and exit
 -j 
    jobname
+-l
+   logfile
 -r
    autoRun (or autoqueue) - use with caution
 -c
@@ -73,6 +75,12 @@ end
 if(!options["n"]) then
   options["n"] = "taskid"
 end
+if(!options["n"]) then
+  options["n"] = "taskid"
+end
+# if(!options["l"]) then
+#   options["l"] = ""
+# end
 
 
 p options
@@ -92,11 +100,15 @@ q=Qsub.new("slurm-R-#{t}.sh",
 
 ## create arguments
 args = ARGV.join(" ")
+
 ## add array?
 if(options['y'])
   /--args/ =~ args || args = args + " --args "
   args = args + " #{options['n']}=$SLURM_ARRAY_TASK_ID "
 end
+
+## add logfile?
+args = args + " >& #{options['l']} " if options['l']
 
 q.add( "Rscript " + args )
 
