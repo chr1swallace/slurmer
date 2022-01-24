@@ -59,12 +59,14 @@ TIME='01:00:00' # hh:mm:ss
 HOSTS= {
     # 'MRC-BSU-SL2' => 'mrc-bsu-sand',
     # 'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
-    'CWALLACE-SL2-CPU' => 'skylake,skylake-himem',
+    # 'CWALLACE-SL2-CPU' => 'skylake,skylake-himem',
+    'CWALLACE-SL2-CPU' => 'cclake',
     # 'CWALLACE-SL3-CPU' => 'skylake',
     'TODD-SL3-CPU' => 'skylake',
     'MRC-BSU-SL3-CPU' => 'skylake',
     'MRC-BSU-SL3-GPU' => 'pascal',
-    'MRC-BSU-SL2-CPU' => 'skylake,skylake-himem',
+    # 'MRC-BSU-SL2-CPU' => 'skylake,skylake-himem',
+    'MRC-BSU-SL2-CPU' => 'cclake',
     'MRC-BSU-SL2-GPU' => 'pascal',
     # 'CWALLACE-SL3' => 'skylake',
     # 'MRC-BSU-SL3' => 'skylake',
@@ -200,9 +202,17 @@ def qone(command,args,filestub)
 end
 
 def qarray(commands,args,filestub)
-    q=Qsub.new("#{@qroot}/#{filestub}.sh",args)
-    commands.each do |command|
-        q.add("#{command} > #{@qroot}/#{filestub}.out 2>&1")
-    end
-    q.close()
+        q=Qsub.new("#{@qroot}/#{filestub}.sh",args)
+        commands.each do |command|
+                q.add("#{command} > #{@qroot}/#{filestub}.out 2>&1")
+        end
+        q.close()
+end
+
+def qwait(str)
+        n=`squeue -u cew54 -n #{str} --noheader | wc -l`.to_i
+        while n > 0 do
+                sleep 600
+                n=`squeue -u cew54 -n #{str} --noheader | wc -l`
+        end
 end

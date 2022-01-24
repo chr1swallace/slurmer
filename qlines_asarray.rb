@@ -74,6 +74,9 @@ lines = File.readlines(f)
 puts lines.length
 puts options[:group]
 njobs= (lines.length / options[:group]).ceil
+if lines.length % options[:group] != 0 then
+  njobs=njobs+1
+end
 
 q=Qsub.new("slurm-lines-#{now}.sh",
            :job=>options[:jobname],
