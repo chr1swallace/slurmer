@@ -10,8 +10,6 @@ now = now.strftime("%Y%m%d")
 
 require 'optimist'
 options = Optimist::options do
-#   require 'micro-optparse'
-# options = Parser.new do |p|
   banner <<-EOS
 qlines_asarray.rb to submit an array job to the q
 
@@ -51,6 +49,7 @@ EOS
       :default => HOSTS[ACCOUNT.upcase]
   opt :dependency,
       "dependency arguments that will be added to sbatch command line as --dependency ARGUMENTHERE. eg use -d after:jobid",
+      :short => 'd',
       :default => ''
   # opt :file,
   #     "filename, file should contain commands to be run on the queue, one line per command, no extraneous text"
