@@ -1,7 +1,5 @@
 #!/home/cew54/localc/bin/ruby
 
-## files to zip in ARGV
-
 require ENV["HOME"] + '/slurmer/Qsub.rb'
 require 'pry'
 require 'optimist'
@@ -11,6 +9,7 @@ qR.rb to submit Rscript jobcs to the queue
 
 Usage:
        qR.rb [options] Rscript_file.R [--args Rscript args]
+       qR.rb [options] Rmarkdown_file.Rmd
 
 where [options] are:
 EOS
@@ -148,20 +147,25 @@ q=Qsub.new("slurm-R-#{t}.sh",
 
 ## script file
 Rscript_file=ARGV.shift
+is_rmd=[".rmd", ".Rmd", ".RMD"].include? File.extname(Rscript_file) 
 
-## deal with arguments
-args = options[:args] ? "--args #{ARGV.join(" ")}" : ''
+if is_rmd  then 
+  q.add( "Rscript -e \"rmarkdown::render('#{Rscript_file}')\"" )
+else 
+  ## deal with arguments
+  args = options[:args] ? "--args #{ARGV.join(" ")}" : ''
 
-## add array?
-if(options[:array] != '')
-  # /--args/ =~ args || args = args + " --args "
-  args = " --args " unless options[:args]
-  args = args + " #{options[:arrayname]}=$SLURM_ARRAY_TASK_ID "
+  ## add array?
+  if(options[:array] != '')
+    # /--args/ =~ args || args = args + " --args "
+    args = " --args " unless options[:args]
+    args = args + " #{options[:arrayname]}=$SLURM_ARRAY_TASK_ID "
+  end
+
+  ## add logfile?
+  args = args + " >& #{options[:logfile]} " unless options[:logfile].nil?
+
+  q.add( "Rscript #{Rscript_file} #{args}" )
 end
-
-## add logfile?
-args = args + " >& #{options[:logfile]} " unless options[:logfile].nil?
-
-q.add( "Rscript #{Rscript_file} #{args}" )
 
 q.close()

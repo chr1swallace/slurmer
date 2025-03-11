@@ -7,6 +7,10 @@ HEADER_CONST='#!/bin/bash'
 ## removed these two lines, because machine.files are annoying and have not been useful yet.
 #echo `cat machine.file.$JOBID | sed -e \'s/\..*$//g\'`
 
+MODULES_ICELAKE='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
+module purge                # Removes all modules still loaded
+module load rhel8/default-icl            # REQUIRED - loads the basic environment
+. /home/cew54/.modules-ice'
 MODULES_SKYLAKE='. /etc/profile.d/modules.sh # Leave this line (enables the module command)
 module purge                # Removes all modules still loaded
 module load rhel7/default-peta4            # REQUIRED - loads the basic environment
@@ -36,19 +40,22 @@ export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches
 #! 3. I_MPI_PIN_PROCESSOR_LIST is ignored if I_MPI_PIN_DOMAIN is set.
 #! 4. If MPI tasks perform better when sharing caches/sockets, try I_MPI_PIN_ORDER=compact.
 '
-TAIL_CDS3='export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
-export PATH="/home/cew54/localc/bin:$PATH"
+TAIL='export I_MPI_PIN_ORDER=scatter # Adjacent domains have minimal sharing of caches/sockets
+
+export PATH="/home/cew54/locali/bin:$PATH"
 JOBID=$SLURM_JOB_ID
+        echo $JOBID >> jobids
 echo -e JobID: $JOBID
 echo Time: `date`
 echo Running on master node: `hostname`
+echo `module list`
 echo Current directory: `pwd`
+echo PATH: $PATH
 if [ "$SLURM_JOB_NODELIST" ]; then
         #! Create a machine file:
         export NODEFILE=`generate_pbs_nodefile`
         echo -e "\nNodes allocated:\n================"
         echo `cat $NODEFILE | uniq`
-        echo $JOBID >> jobids
 fi
 
 '
@@ -60,13 +67,13 @@ HOSTS= {
     # 'MRC-BSU-SL2' => 'mrc-bsu-sand',
     # 'MRC-BSU-SL2-GPU' => 'mrc-bsu-tesla',
     # 'CWALLACE-SL2-CPU' => 'skylake,skylake-himem',
-    'CWALLACE-SL2-CPU' => 'cclake,cclake-himem',
+    'CWALLACE-SL2-CPU' => 'icelake',
     # 'CWALLACE-SL3-CPU' => 'skylake',
-    'TODD-SL3-CPU' => 'skylake',
-    'MRC-BSU-SL3-CPU' => 'skylake',
-    'MRC-BSU-SL3-GPU' => 'pascal',
-    # 'MRC-BSU-SL2-CPU' => 'skylake,skylake-himem',
-    'MRC-BSU-SL2-CPU' => 'cclake,skylake-himem',
+    # 'TODD-SL3-CPU' => 'skylake',
+    # 'MRC-BSU-SL3-CPU' => 'skylake',
+    # 'MRC-BSU-SL3-GPU' => 'pascal',
+    # # 'MRC-BSU-SL2-CPU' => 'skylake,skylake-himem',
+    'MRC-BSU-SL2-CPU' => 'cclake',
     'MRC-BSU-SL2-GPU' => 'pascal',
     # 'CWALLACE-SL3' => 'skylake',
     # 'MRC-BSU-SL3' => 'skylake',
@@ -149,7 +156,7 @@ class Qsub
             @file.puts("sbatch #{@dependency} -o #{@qroot}/%j.out " + jobfile_name())
             init_job()
         end
-        @jobfile.puts 'echo "running" ' + command + "\n"
+        @jobfile.puts 'echo "running ' + command + '"' + "\n"
         @jobfile.puts "#{@comm} #{command} &\n"
         @counter_inner += 1
     end
@@ -169,15 +176,17 @@ class Qsub
         if @array!=''
             @jobfile.puts "#SBATCH --array=#{@array}"
             @jobfile.puts "#SBATCH --output=#{@job}-%A_%a.out"
+            # @jobfile.puts "#SBATCH --error=#{@job}-%A_%a.err"
         else
             @jobfile.puts "#SBATCH --output=#{@job}-%A.out"
+            # @jobfile.puts "#SBATCH --error=#{@job}-%A.err"
         end
         if @p.eql?('cclake')
                 @jobfile.puts MODULES_CCLAKE
         else
-                @jobfile.puts MODULES_SKYLAKE
+                @jobfile.puts MODULES_ICELAKE
         end
-        @jobfile.puts TAIL_CDS3
+        @jobfile.puts TAIL
     end
 
     def close
@@ -196,8 +205,8 @@ class Qsub
 end
 
 def qone(command,args,filestub)
-    q=Qsub.new("#{@qroot}/#{filestub}.sh",args)
-    q.add("#{command} > #{@qroot}/#{filestub}.out 2>&1")
+    q=Qsub.new("#{filestub}.sh",args)
+    q.add("#{command} > #{filestub}.out 2>&1")
     q.close()
 end
 

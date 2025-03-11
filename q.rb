@@ -1,10 +1,8 @@
 #!/usr/bin/ruby
 
-## files to zip in ARGV
-
 require ENV["HOME"] + '/slurmer/Qsub.rb'
 
-## put "gzip argv" on the Q for each thing in @ARGV
+## put "command" on the Q for each thing in @ARGV
 now = Time.now
 now = now.strftime("%Y%m%d")
 

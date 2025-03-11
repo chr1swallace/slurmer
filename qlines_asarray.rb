@@ -44,7 +44,7 @@ EOS
       :short => 'r',
       :default => false
   opt :host,
-      "host defaults to sensible choice based on accounts. But if you want to specify, eg, skylake-himem, add -p skylake-himem",
+      "host defaults to sensible choice based on accounts. But if you want to specify, eg, skylake-himem, add -p cclake-himem",
       :short => 'p',
       :default => HOSTS[ACCOUNT.upcase]
   opt :dependency,
@@ -57,7 +57,12 @@ end
 Optimist::die "need at least one filename" if ARGV.empty?
 
 ## dependency
-options[:dependency] = "--dependency #{options[:dependency]}" if options[:dependency] != ''
+if(options[:dependency] == "auto") then
+  curjobs=`squeue -u cew54 -o %.18i| sed '1d;s/_.*//;s/ *//g'| sort | uniq|paste`.chomp.sub(/\n/,",")
+  options[:dependency] = "--dependency=afterany:#{curjobs}" if curjobs.length > 0
+else
+  options[:dependency] = "--dependency #{options[:dependency]}" if options[:dependency] != ''
+end
 ## exclusive
 # if(!options["x"]) then
 #   options["x"] = " "
