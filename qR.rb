@@ -150,7 +150,7 @@ Rscript_file=ARGV.shift
 is_rmd=[".rmd", ".Rmd", ".RMD"].include? File.extname(Rscript_file) 
 
 if is_rmd  then 
-  q.add( "Rscript -e \"rmarkdown::render('#{Rscript_file}')\"" )
+  q.add( "/home/cew54/local/bin/Rscript -e \"rmarkdown::render('#{Rscript_file}')\"" )
 else 
   ## deal with arguments
   args = options[:args] ? "--args #{ARGV.join(" ")}" : ''
@@ -165,7 +165,7 @@ else
   ## add logfile?
   args = args + " >& #{options[:logfile]} " unless options[:logfile].nil?
 
-  q.add( "Rscript #{Rscript_file} #{args}" )
+  q.add( "/home/cew54/local/bin/Rscript #{Rscript_file} #{args}" )
 end
 
 q.close()
